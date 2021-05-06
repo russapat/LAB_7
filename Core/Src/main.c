@@ -149,21 +149,20 @@ int main(void)
 	  	PWM = (error*Kp) + (error_integal*Ki) + (error_dot*Kd) + Offset;
 	  	error_prev = error;
 
-	  	if(Set_RPM > 0 ){
+	  	if(PWM > 0 ){
 	  		PWMOut = PWM;
 	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, PWMOut);
 	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
 	  	}
-	  	if(Set_RPM == 0){
+	  	if(PWM == 0){
 	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
 	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
 	  		PWMOut = 0;
 	  	}
-	  	if (Set_RPM < 0) {
+	  	if (PWM < 0) {
 	  		PWMOut = PWM*(-1);
 	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
 	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, PWMOut);
-
 		}
 	  }
   }
