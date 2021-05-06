@@ -50,17 +50,19 @@ UART_HandleTypeDef huart2;
 uint64_t _micros = 0;
 float EncoderVel = 0;
 uint64_t Timestamp_Encoder = 0;
-uint64_t PWMOut = 0;
-int64_t Set_RPM = 0;
+
+uint16_t PWMOut = 0;
+int16_t PWM = 0;
+float Set_RPM = 0;
 float Current_RPM = 0;
 
-uint64_t error = 0;
-uint64_t error_prev = 0;
-uint64_t error_dot = 0;
-uint64_t error_integal = 0;
-float Kp = 0;
-float Ki = 0;
-float Kd = 0;
+float error = 0;
+float error_prev = 0;
+float error_dot = 0;
+float error_integal = 0;
+float Kp = 1;
+float Ki = 3;
+float Kd = 3;
 float Offset = 0;
 /* USER CODE END PV */
 
@@ -133,29 +135,35 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if (micros() - Timestamp_Encoder >= 100)
+	  if (micros() - Timestamp_Encoder >= 1000)
 	  {
 	  	Timestamp_Encoder = micros();
-	  	EncoderVel = (EncoderVel * 99 + EncoderVelocity_Update()) / 100.0;
-	  	Current_RPM = (EncoderVel / 3072)*60; //แปลงจาก P/S เป็น RPM
+	  	EncoderVel = (EncoderVel * 999 + EncoderVelocity_Update()) / 1000.0;
+	  	Current_RPM = EncoderVel *60 / 3072.0;
+	  			//convert P/S to RPM.
 
 	  	error = Set_RPM - Current_RPM;
-	  	error_dot = error - error_prev;
-	  	error_integal = error_integal + error;
+	  	error_dot = (error - error_prev)*1000.0;
+	  	error_integal = error_integal + (error/1000.0);
 
-	  	PWMOut = (error*Kp) + (error_integal*Ki) + (error_dot*Kd) + Offset;
+	  	PWM = (error*Kp) + (error_integal*Ki) + (error_dot*Kd) + Offset;
+	  	error_prev = error;
 
 	  	if(Set_RPM > 0 ){
-	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, PWMOut);
+	  		PWMOut = PWM;
+	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, PWMOut);
+	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
 	  	}
 	  	if(Set_RPM == 0){
 	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
 	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+	  		PWMOut = 0;
 	  	}
 	  	if (Set_RPM < 0) {
-	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, PWMOut);
-	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+	  		PWMOut = PWM*(-1);
+	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+	  		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, PWMOut);
+
 		}
 	  }
   }
@@ -304,7 +312,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
+  htim2.Init.Prescaler = 99;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -358,11 +366,11 @@ static void MX_TIM3_Init(void)
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
+  sConfig.IC1Filter = 2;
   sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 0;
+  sConfig.IC2Filter = 2;
   if (HAL_TIM_Encoder_Init(&htim3, &sConfig) != HAL_OK)
   {
     Error_Handler();
